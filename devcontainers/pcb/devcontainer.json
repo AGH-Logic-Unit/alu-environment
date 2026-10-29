@@ -1,0 +1,27 @@
+{
+  "name": "AGH Logic Unit - PCB UDE",
+  "image": "ghcr.io/agh-logic-unit/alu-pcb:latest",
+  "imagePullPolicy": "always",
+  "initializeCommand": "docker pull ghcr.io/agh-logic-unit/alu-pcb:latest || true",
+  "remoteUser": "vscode",
+  "mounts": [
+    "source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh,type=bind,readonly,consistency=cached"
+  ],
+  "containerEnv": {
+    "PATH": "/opt/alu-venv/bin:/usr/local/bin:/usr/bin:/bin"
+  },
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "python.defaultInterpreterPath": "/opt/alu-venv/bin/python3",
+        "editor.formatOnSave": true
+      },
+      "extensions": [
+        "ms-python.python",
+        "tamasfe.even-better-toml",
+        "eamodio.gitlens"
+      ]
+    }
+  },
+  "postCreateCommand": "kicad-cli --version && kikit --version"
+}

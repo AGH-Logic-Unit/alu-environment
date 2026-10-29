@@ -1,0 +1,23 @@
+{
+  "name": "AGH Logic Unit - Environment Dev",
+  "image": "ghcr.io/agh-logic-unit/alu-base:latest",
+  "imagePullPolicy": "always",
+  "initializeCommand": "docker pull ghcr.io/agh-logic-unit/alu-base:latest || true",
+  "remoteUser": "vscode",
+  "mounts": [
+    "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
+  ],
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "editor.formatOnSave": true
+      },
+      "extensions": [
+        "ms-azuretools.vscode-docker",
+        "tamasfe.even-better-toml",
+        "eamodio.gitlens"
+      ]
+    }
+  },
+  "postCreateCommand": "just --version"
+}

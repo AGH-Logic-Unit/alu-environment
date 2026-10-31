@@ -1,0 +1,29 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.venv/
+env/
+
+# Simulation & EDA build outputs
+obj_dir/
+sim_build/
+*.vcd
+*.fst
+*.ghw
+
+# KiCad temporary & auto-save files
+*.kicad_prl
+*-save.kicad_pcb
+_autosave-*
+
+# System & Editor artifacts
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.vscode/.ropeproject
+
+# Local notes
+*.local.md

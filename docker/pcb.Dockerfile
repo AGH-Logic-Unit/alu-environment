@@ -17,7 +17,7 @@ ENV ALU_IMAGE_VERSION=${PCB_VERSION} \
 # Layer 1: KiCad CLI & graphics/diff utilities
 RUN apt-get update && apt-get install -y --no-install-recommends \
     software-properties-common && \
-    add-apt-repository --yes ppa:kicad/kicad-8.0-releases && \
+    add-apt-repository --yes ppa:kicad/kicad-10.0-releases && \
     apt-get update && apt-get install -y --no-install-recommends \
     diff-pdf-wx \
     gerbv \

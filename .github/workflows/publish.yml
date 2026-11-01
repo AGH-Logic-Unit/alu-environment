@@ -1,0 +1,280 @@
+name: Publish Container Images
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      force_all:
+        description: 'Force rebuild all container flavors'
+        type: boolean
+        default: false
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  filter:
+    name: Evaluate Changes & Registry
+    runs-on: ubuntu-latest
+    outputs:
+      build_base: ${{ steps.decide.outputs.build_base }}
+      build_rtl: ${{ steps.decide.outputs.build_rtl }}
+      build_pcb: ${{ steps.decide.outputs.build_pcb }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Check Changed Paths
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            base:
+              - 'docker/base.Dockerfile'
+              - 'docker/base.version'
+              - 'standards/**'
+              - 'scripts/**'
+              - '.github/workflows/publish.yml'
+            rtl:
+              - 'docker/rtl.Dockerfile'
+              - 'docker/rtl.version'
+              - '.github/workflows/publish.yml'
+            pcb:
+              - 'docker/pcb.Dockerfile'
+              - 'docker/pcb.version'
+              - '.github/workflows/publish.yml'
+
+      - name: Check Registry Status
+        id: check_ghcr
+        run: |
+          if docker manifest inspect ghcr.io/agh-logic-unit/alu-base:latest >/dev/null 2>&1; then
+            echo "base_exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "base_exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Compute Build Plan
+        id: decide
+        run: |
+          FORCE="${{ github.event.inputs.force_all || 'false' }}"
+          BASE_EXISTS="${{ steps.check_ghcr.outputs.base_exists }}"
+          BASE_CHANGED="${{ steps.filter.outputs.base }}"
+          RTL_CHANGED="${{ steps.filter.outputs.rtl }}"
+          PCB_CHANGED="${{ steps.filter.outputs.pcb }}"
+
+          if [ "$FORCE" = "true" ] || [ "$BASE_EXISTS" = "false" ] || [ "$BASE_CHANGED" = "true" ]; then
+            BUILD_BASE="true"
+          else
+            BUILD_BASE="false"
+          fi
+
+          if [ "$BUILD_BASE" = "true" ] || [ "$RTL_CHANGED" = "true" ]; then
+            BUILD_RTL="true"
+          else
+            BUILD_RTL="false"
+          fi
+
+          if [ "$BUILD_BASE" = "true" ] || [ "$PCB_CHANGED" = "true" ]; then
+            BUILD_PCB="true"
+          else
+            BUILD_PCB="false"
+          fi
+
+          echo "build_base=${BUILD_BASE}" >> "$GITHUB_OUTPUT"
+          echo "build_rtl=${BUILD_RTL}" >> "$GITHUB_OUTPUT"
+          echo "build_pcb=${BUILD_PCB}" >> "$GITHUB_OUTPUT"
+          echo "Plan: build_base=${BUILD_BASE}, build_rtl=${BUILD_RTL}, build_pcb=${BUILD_PCB}"
+
+  build-base:
+    name: Build & Push alu-base
+    needs: [filter]
+    if: ${{ needs.filter.outputs.build_base == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Read Version
+        id: version
+        run: |
+          VER=$(tr -d '[:space:]' < docker/base.version)
+          echo "version=${VER}" >> "$GITHUB_OUTPUT"
+          MAJOR_MINOR=$(echo "$VER" | cut -d. -f1,2)
+          echo "major_minor=${MAJOR_MINOR}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/amd64,linux/arm64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker Metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/agh-logic-unit/alu-base
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=${{ steps.version.outputs.version }}
+            type=raw,value=${{ steps.version.outputs.major_minor }}
+            type=sha,format=short
+
+      - name: Build and Push alu-base
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./docker/base.Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          build-args: |
+            BASE_VERSION=${{ steps.version.outputs.version }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=alu-base
+          cache-to: type=gha,scope=alu-base,mode=max
+
+  build-rtl:
+    name: Build & Push alu-rtl
+    needs: [filter, build-base]
+    if: |
+      always() &&
+      needs.filter.result == 'success' &&
+      (needs.build-base.result == 'success' || needs.build-base.result == 'skipped') &&
+      needs.filter.outputs.build_rtl == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Read Versions
+        id: version
+        run: |
+          RTL_VER=$(tr -d '[:space:]' < docker/rtl.version)
+          BASE_VER=$(tr -d '[:space:]' < docker/base.version)
+          BASE_MM=$(echo "$BASE_VER" | cut -d. -f1,2)
+          echo "rtl_version=${RTL_VER}" >> "$GITHUB_OUTPUT"
+          echo "composite_tag=${BASE_MM}-rtl.${RTL_VER}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/amd64,linux/arm64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker Metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/agh-logic-unit/alu-rtl
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=${{ steps.version.outputs.rtl_version }}
+            type=raw,value=${{ steps.version.outputs.composite_tag }}
+            type=sha,format=short
+
+      - name: Build and Push alu-rtl
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./docker/rtl.Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          build-args: |
+            RTL_VERSION=${{ steps.version.outputs.rtl_version }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=alu-rtl
+          cache-to: type=gha,scope=alu-rtl,mode=max
+
+  build-pcb:
+    name: Build & Push alu-pcb
+    needs: [filter, build-base]
+    if: |
+      always() &&
+      needs.filter.result == 'success' &&
+      (needs.build-base.result == 'success' || needs.build-base.result == 'skipped') &&
+      needs.filter.outputs.build_pcb == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Read Versions
+        id: version
+        run: |
+          PCB_VER=$(tr -d '[:space:]' < docker/pcb.version)
+          BASE_VER=$(tr -d '[:space:]' < docker/base.version)
+          BASE_MM=$(echo "$BASE_VER" | cut -d. -f1,2)
+          echo "pcb_version=${PCB_VER}" >> "$GITHUB_OUTPUT"
+          echo "composite_tag=${BASE_MM}-pcb.${PCB_VER}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/amd64,linux/arm64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker Metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/agh-logic-unit/alu-pcb
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=${{ steps.version.outputs.pcb_version }}
+            type=raw,value=${{ steps.version.outputs.composite_tag }}
+            type=sha,format=short
+
+      - name: Build and Push alu-pcb
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./docker/pcb.Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          build-args: |
+            PCB_VERSION=${{ steps.version.outputs.pcb_version }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=alu-pcb
+          cache-to: type=gha,scope=alu-pcb,mode=max

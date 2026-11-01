@@ -16,14 +16,17 @@ ENV ALU_IMAGE_VERSION=${PCB_VERSION} \
 
 # Layer 1: KiCad CLI & graphics/diff utilities
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    diff-pdf \
+    software-properties-common && \
+    add-apt-repository --yes ppa:kicad/kicad-8.0-releases && \
+    apt-get update && apt-get install -y --no-install-recommends \
+    diff-pdf-wx \
     gerbv \
     ghostscript \
     imagemagick \
     kicad \
-    libgl1-mesa-glx \
+    libgl1 \
+    libgl1-mesa-dri \
     poppler-utils \
-    python3-kicad \
     xsltproc \
     && rm -rf /var/lib/apt/lists/*
 
@@ -35,9 +38,7 @@ RUN python3 -m venv --system-site-packages $VIRTUAL_ENV && \
     $VIRTUAL_ENV/bin/pip install --no-cache-dir --upgrade pip && \
     $VIRTUAL_ENV/bin/pip install --no-cache-dir \
         kikit \
-        kikit-jlcpcb \
         InteractiveHtmlBom \
-        kicad-skip \
         pyyaml \
         click && \
     chown -R vscode:vscode $VIRTUAL_ENV

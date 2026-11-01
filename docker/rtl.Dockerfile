@@ -107,7 +107,7 @@ RUN wget https://github.com/verilator/verilator/archive/refs/tags/v${VERILATOR_V
     rm -rf /tmp/verilator-${VERILATOR_VERSION} /tmp/verilator.tar.gz /usr/local/share/man /usr/local/share/doc/verilator
 
 # Spike Golden Simulator
-RUN git clone --depth=1 https://github.com/riscv-software-src/riscv-isa-sim.git /tmp/spike && \
+RUN git clone --depth=1 --recurse-submodules https://github.com/riscv-software-src/riscv-isa-sim.git /tmp/spike && \
     cd /tmp/spike && \
     mkdir build && cd build && \
     ../configure --prefix=/usr/local && \

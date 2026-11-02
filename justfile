@@ -32,6 +32,13 @@ build-pcb:
     docker build -f docker/pcb.Dockerfile -t alu-pcb:test .
     @echo "✓ alu-pcb:test built successfully."
 
+# Build local alu-fw image
+build-fw:
+    @echo "[BUILD] Building local alu-fw image..."
+    @docker tag alu-base:test ghcr.io/agh-logic-unit/alu-base:latest 2>/dev/null || true
+    docker build -f docker/fw.Dockerfile -t alu-fw:test .
+    @echo "✓ alu-fw:test built successfully."
+
 # Run a quick interactive smoke test inside alu-rtl
 test-rtl:
     docker run --rm -it alu-rtl:test bash -lic "verilator --version && slang --version && just --version && python3 -c 'import cocotb; print(\"Cocotb OK\")'"

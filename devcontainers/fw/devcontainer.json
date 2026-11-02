@@ -1,0 +1,59 @@
+{
+  "name": "AGH Logic Unit - Firmware UDE",
+  "image": "ghcr.io/agh-logic-unit/alu-firmware:latest",
+  "imagePullPolicy": "always",
+  "initializeCommand": "docker pull ghcr.io/agh-logic-unit/alu-firmware:latest || true",
+  "remoteUser": "vscode",
+  "mounts": [
+    "source=alu-ccache-vol,target=/home/vscode/.cache/ccache,type=volume",
+    "source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh,type=bind,readonly,consistency=cached"
+  ],
+  "containerEnv": {
+    "CCACHE_DIR": "/home/vscode/.cache/ccache",
+    "PATH": "/opt/alu-venv/bin:/usr/local/bin:/usr/bin:/bin"
+  ],
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "python.defaultInterpreterPath": "/opt/alu-venv/bin/python3",
+        "editor.formatOnSave": true,
+        "editor.rulers": [100, 120],
+        
+        "C_Cpp.default.compilerPath": "/usr/bin/riscv64-unknown-elf-gcc",
+        "C_Cpp.default.cStandard": "gnu11",
+        "C_Cpp.default.cppStandard": "gnu++17",
+        "C_Cpp.default.intelliSenseMode": "gcc-riscv64",
+        "C_Cpp.formatting": "clangFormat",
+
+        "[c]": {
+          "editor.defaultFormatter": "ms-vscode.cpptools",
+          "editor.tabSize": 4,
+          "editor.insertSpaces": true
+        },
+        "[cpp]": {
+          "editor.defaultFormatter": "ms-vscode.cpptools",
+          "editor.tabSize": 4,
+          "editor.insertSpaces": true
+        },
+        "[python]": {
+          "editor.defaultFormatter": "charliermarsh.ruff",
+          "editor.codeActionsOnSave": {
+            "source.fixAll": "explicit",
+            "source.organizeImports": "explicit"
+          }
+        }
+      },
+      "extensions": [
+        "ms-vscode.cpptools",
+        "ms-vscode.cpptools-extension-pack",
+        "charliermarsh.ruff",
+        "ms-python.python",
+        "llvm-vs-code-extensions.vscode-clangd",
+        "tamasfe.even-better-toml",
+        "eamodio.gitlens",
+        "webfreak.debug"
+      ]
+    }
+  },
+  "postCreateCommand": "riscv64-unknown-elf-gcc --version && just --version"
+}

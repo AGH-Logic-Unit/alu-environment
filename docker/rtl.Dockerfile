@@ -45,6 +45,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libmpfr-dev \
     libncurses-dev \
     libreadline-dev \
+    libsdl2-dev \
     libsystemc-dev \
     libudev-dev \
     libusb-1.0-0-dev \

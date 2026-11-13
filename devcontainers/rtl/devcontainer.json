@@ -59,7 +59,8 @@
         "ms-python.python",
         "llvm-vs-code-extensions.vscode-clangd",
         "tamasfe.even-better-toml",
-        "eamodio.gitlens"
+        "eamodio.gitlens",
+        "nefrob.vscode-just-syntax"
       ]
     }
   },

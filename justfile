@@ -34,7 +34,7 @@ build-pcb:
 
 # Run a quick interactive smoke test inside alu-rtl
 test-rtl:
-    docker run --rm -it alu-rtl:test bash -lic "verilator --version && slang --version && just --version && python3 -c 'import cocotb; print(\"Cocotb OK\")'"
+    docker run --rm -it alu-rtl:test bash -lic "verilator --version && slang --version && pkg-config --modversion sdl3 && just --version && python3 -c 'import cocotb; print(\"Cocotb OK\")'"
 
 # ------------------------------------------------------------------------------
 # VERSION MANAGEMENT

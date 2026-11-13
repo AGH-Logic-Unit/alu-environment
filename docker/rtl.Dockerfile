@@ -49,6 +49,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libsystemc-dev \
     libudev-dev \
     libusb-1.0-0-dev \
+    libxtst-dev \
     libz3-dev \
     openocd \
     iverilog \
@@ -93,7 +94,25 @@ RUN if [ "$TARGETARCH" = "arm64" ] || [ "$(uname -m)" = "aarch64" ]; then \
     fi
 
 
-# Layer 3: Verilator 5.x & Spike & riscv-tests & SymbiYosys
+# Layer 3: SDL3 (Hardware verification & display emulation)
+ENV SDL3_VERSION=3.4.20
+RUN mkdir -p /tmp/sdl3 && \
+    curl -sSL "https://github.com/libsdl-org/SDL/archive/refs/tags/release-${SDL3_VERSION}.tar.gz" | \
+    tar -xz -C /tmp/sdl3 --strip-components=1 && \
+    cmake -B /tmp/sdl3/build -S /tmp/sdl3 -G Ninja \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=/usr/local \
+        -DSDL_STATIC=OFF \
+        -DSDL_SHARED=ON \
+        -DSDL_TESTS=OFF \
+        -DSDL_X11_XTEST=OFF && \
+    cmake --build /tmp/sdl3/build --parallel $(nproc) && \
+    cmake --install /tmp/sdl3/build && \
+    ldconfig && \
+    rm -rf /tmp/sdl3
+
+
+# Layer 4: Verilator 5.x & Spike & riscv-tests & SymbiYosys
 ENV VERILATOR_VERSION=5.034
 RUN wget https://github.com/verilator/verilator/archive/refs/tags/v${VERILATOR_VERSION}.tar.gz -O /tmp/verilator.tar.gz && \
     tar -xzf /tmp/verilator.tar.gz -C /tmp && \
@@ -131,7 +150,7 @@ RUN git clone --depth=1 https://github.com/YosysHQ/sby.git /tmp/sby && \
     rm -rf /tmp/sby
 
 
-# Layer 4: Python Virtual Environment & Testing Stack
+# Layer 5: Python Virtual Environment & Testing Stack
 ENV VIRTUAL_ENV=/opt/alu-venv
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
@@ -173,6 +192,7 @@ RUN verilator --version && \
     slang --version && \
     verible-verilog-format --version && \
     riscv64-unknown-elf-gcc --version && \
+    pkg-config --modversion sdl3 && \
     python3 -c "import cocotb, pytest, ruff, z3; print('✓ ALU UDE Ready')"
 
 CMD ["/bin/bash"]

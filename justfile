@@ -47,6 +47,14 @@ versions:
     @echo "alu-pcb:  $(cat docker/pcb.version)"
 
 # ------------------------------------------------------------------------------
+# CONVENTIONAL COMMITS VALIDATION
+# ------------------------------------------------------------------------------
+
+# Validate commit messages on current branch against Conventional Commits (.commitlintrc.json)
+check-commits base="origin/main":
+    @npx --yes @commitlint/cli --from {{base}} --to HEAD
+
+# ------------------------------------------------------------------------------
 # SYNCHRONIZATION WITH MEMBER REPOSITORIES
 # ------------------------------------------------------------------------------
 
@@ -55,4 +63,6 @@ sync-to target flavor="rtl":
     @mkdir -p {{target}}/.devcontainer
     @cp -v devcontainers/{{flavor}}/devcontainer.json {{target}}/.devcontainer/
     @cp -v ai/AGENTS.md {{target}}/
-    @echo "✓ Synchronized {{flavor}} DevContainer & AGENTS.md to {{target}}"
+    @cp -v standards/.commitlintrc.json {{target}}/.commitlintrc.json
+    @cp -v standards/ruff.toml {{target}}/ruff.toml
+    @echo "✓ Synchronized {{flavor}} DevContainer, AGENTS.md, .commitlintrc.json & ruff.toml to {{target}}"

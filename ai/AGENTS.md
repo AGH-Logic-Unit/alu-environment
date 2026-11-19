@@ -36,3 +36,12 @@ Conventions and rules for AI assistants working in AGH Logic Unit repositories.
 ## 4. Formatting
 - Formatting rules are defined in `.rules.verible_format` and `ruff.toml`.
 - Let the automated formatters handle alignment rather than doing manual column alignment.
+
+---
+
+## 5. Git & Commit Message Standards
+- Strictly follow the [Conventional Commits](https://www.conventionalcommits.org/) specification: `<type>(<scope>): <summary>`
+- Allowed types: standard SemVer-aligned types (`feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`).
+- Hardware modules, subsystems, and tooling belong in the **scope**, not the type (e.g. `feat(alu): ...`, `fix(decoder): ...`, `test(dv): ...`, `feat(pcb): ...`, `chore(tapeout): ...`).
+- Configuration is standardized via `.commitlintrc.json`.
+- Enforced on PR branches in CI. Keep commits atomic so microarchitectural regressions can be isolated with `git bisect`.

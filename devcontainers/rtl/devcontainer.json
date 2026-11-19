@@ -6,7 +6,7 @@
   "remoteUser": "vscode",
   "mounts": [
     "source=alu-ccache-vol,target=/home/vscode/.cache/ccache,type=volume",
-    "source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh,type=bind,readonly,consistency=cached"
+    "source=${localEnv:HOME}${localEnv:USERPROFILE}/.ssh,target=/home/vscode/.ssh-host,type=bind,readonly"
   ],
   "containerEnv": {
     "CCACHE_DIR": "/home/vscode/.cache/ccache",
@@ -64,5 +64,5 @@
       ]
     }
   },
-  "postCreateCommand": "just --version"
+  "postCreateCommand": "mkdir -p ~/.ssh && (cp -rf ~/.ssh-host/* ~/.ssh/ 2>/dev/null || true) && chmod 700 ~/.ssh 2>/dev/null && chmod 600 ~/.ssh/* 2>/dev/null || true; just --version"
 }

@@ -29,6 +29,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     jq \
     make \
     ninja-build \
+    nodejs \
+    npm \
     openssh-client \
     pkg-config \
     python3 \

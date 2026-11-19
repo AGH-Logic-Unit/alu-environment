@@ -173,6 +173,10 @@ RUN python3 -m venv $VIRTUAL_ENV && \
         deepdiff \
         bitwuzla \
         z3-solver==4.13.0.0 \
+        cocotb-tools \
+        tqdm \
+        tabulate \
+        loguru \
         pyslang>=12.0 \
         riscof \
         fastmcp \
